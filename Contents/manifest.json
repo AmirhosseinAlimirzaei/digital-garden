@@ -29,6 +29,26 @@
             "audioPersian": "The Comfort Crisis Audio Persian.mp3",
             "audioEnglish": null,
             "pdf": "The Comfort Crisis.pdf"
+        },
+        {
+            "title": "How to Win Friends and Influence People",
+            "description": "A timeless guide to building strong relationships and effective communication. Dale Carnegie teaches practical principles for influencing others, winning people over, and becoming a better leader and communicator.",
+            "folder": "How to Win Friends and Influence People",
+            "cover": "How to Win Friends and Influence People Cover.jpg",
+            "infographic": "How to Win Friends and Influence People Infographic.jpg",
+            "audioPersian": "How to Win Friends and Influence People Audio Persian.mp3",
+            "audioEnglish": null,
+            "pdf": "How to Win Friends and Influence People.pdf"
+        },
+        {
+            "title": "Eat That Frog",
+            "description": "21 Great Ways to Stop Procrastinating and Get More Done in Less Time. Brian Tracy explains how to tackle your most important and difficult tasks first to dramatically increase productivity and focus.",
+            "folder": "Eat That Frog",
+            "cover": "Eat That Frog Cover.jpg",
+            "infographic": "Eat That Frog Infographic.jpg",
+            "audioPersian": "Eat That Frog Audio Persian.mp3",
+            "audioEnglish": null,
+            "pdf": "Eat That Frog.pdf"
         }
     ]
 }
