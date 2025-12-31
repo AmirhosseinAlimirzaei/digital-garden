@@ -1,0 +1,34 @@
+{
+    "books": [
+        {
+            "title": "The One Thing",
+            "description": "The Surprisingly Simple Truth Behind Extraordinary Results. This book teaches you to cut through the clutter, achieve better results in less time, and build momentum toward your goal by focusing on the most important thing.",
+            "folder": "The One Thing",
+            "cover": "The One Thing Cover.jpg",
+            "infographic": "The One Thing Infographic.jpg",
+            "audioPersian": "The One Thing Audio Persian.mp3",
+            "audioEnglish": null,
+            "pdf": "The One Thing.pdf"
+        },
+        {
+            "title": "Dopamine Nation",
+            "description": "Finding Balance in the Age of Indulgence. Dr. Anna Lembke explores how to moderate compulsive overconsumption in a dopamine-overloaded world and find balance between pleasure and pain.",
+            "folder": "Dopamine Nation",
+            "cover": "Dopamine Nation Cover.jpg",
+            "infographic": "Dopamine Nation Infographic.jpg",
+            "audioPersian": "Dopamine Nation Audio Persian.mp3",
+            "audioEnglish": "Dopamine Nation Audio English.mp3",
+            "pdf": "Dopamine Nation.pdf"
+        },
+        {
+            "title": "The Comfort Crisis",
+            "description": "Embrace Discomfort to Reclaim Your Wild, Happy, Healthy Self. Michael Easter explores how modern comfort is quietly eroding our physical and mental resilience, and shows how embracing hardship can lead to a healthier, more meaningful life.",
+            "folder": "The Comfort Crisis",
+            "cover": "The Comfort Crisis Cover.jpg",
+            "infographic": "The Comfort Crisis Infographic.jpg",
+            "audioPersian": "The Comfort Crisis Audio Persian.mp3",
+            "audioEnglish": null,
+            "pdf": "The Comfort Crisis.pdf"
+        }
+    ]
+}
