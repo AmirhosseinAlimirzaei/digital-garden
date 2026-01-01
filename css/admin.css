@@ -113,10 +113,23 @@ body {
 }
 
 @keyframes float {
-    0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
-    25% { transform: translate(60px, -60px) scale(1.1) rotate(5deg); }
-    50% { transform: translate(-40px, 40px) scale(0.95) rotate(-5deg); }
-    75% { transform: translate(-60px, -40px) scale(1.08) rotate(3deg); }
+
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+    }
+
+    25% {
+        transform: translate(60px, -60px) scale(1.1) rotate(5deg);
+    }
+
+    50% {
+        transform: translate(-40px, 40px) scale(0.95) rotate(-5deg);
+    }
+
+    75% {
+        transform: translate(-60px, -40px) scale(1.08) rotate(3deg);
+    }
 }
 
 /* ===== PARTICLES ===== */
@@ -138,10 +151,25 @@ body {
 }
 
 @keyframes particleFloat {
-    0%, 100% { transform: translateY(100vh) scale(0); opacity: 0; }
-    10% { opacity: 0.3; }
-    90% { opacity: 0.3; }
-    100% { transform: translateY(-100px) scale(1); opacity: 0; }
+
+    0%,
+    100% {
+        transform: translateY(100vh) scale(0);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 0.3;
+    }
+
+    90% {
+        opacity: 0.3;
+    }
+
+    100% {
+        transform: translateY(-100px) scale(1);
+        opacity: 0;
+    }
 }
 
 /* ===== LOGIN PAGE ===== */
@@ -176,6 +204,7 @@ body {
         opacity: 0;
         transform: translateY(30px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -195,8 +224,13 @@ body {
 }
 
 @keyframes gradientMove {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 200% 50%; }
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 200% 50%;
+    }
 }
 
 /* Login Header */
@@ -227,8 +261,15 @@ body {
 }
 
 @keyframes logoPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
 }
 
 .logo-icon svg {
@@ -252,12 +293,24 @@ body {
     animation: ringPulse 2s infinite ease-out;
 }
 
-.logo-rings span:nth-child(2) { animation-delay: 0.4s; }
-.logo-rings span:nth-child(3) { animation-delay: 0.8s; }
+.logo-rings span:nth-child(2) {
+    animation-delay: 0.4s;
+}
+
+.logo-rings span:nth-child(3) {
+    animation-delay: 0.8s;
+}
 
 @keyframes ringPulse {
-    0% { transform: scale(1); opacity: 0.6; }
-    100% { transform: scale(1.5); opacity: 0; }
+    0% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
 }
 
 .login-header h1 {
@@ -324,8 +377,8 @@ body {
     transition: fill 0.3s ease;
 }
 
-.input-group input:focus + .input-icon svg,
-.input-group input:focus ~ .input-icon svg {
+.input-group input:focus+.input-icon svg,
+.input-group input:focus~.input-icon svg {
     fill: var(--accent);
 }
 
@@ -341,7 +394,7 @@ body {
     border-radius: 2px;
 }
 
-.input-group input:focus ~ .input-highlight {
+.input-group input:focus~.input-highlight {
     width: calc(100% - 4px);
 }
 
@@ -401,9 +454,21 @@ body {
 }
 
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-8px); }
-    40%, 80% { transform: translateX(8px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    20%,
+    60% {
+        transform: translateX(-8px);
+    }
+
+    40%,
+    80% {
+        transform: translateX(8px);
+    }
 }
 
 .error-message svg {
@@ -503,7 +568,9 @@ body {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Login Footer */
@@ -565,7 +632,9 @@ body {
 }
 
 @keyframes decoRotate {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* ===== ADMIN PAGE ===== */
@@ -812,8 +881,15 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Section Header */
@@ -1229,7 +1305,7 @@ body {
 .btn-publish .spinner {
     width: 20px;
     height: 20px;
-    border: 2px solid rgba(255,255,255,0.3);
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-top-color: white;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -1289,8 +1365,15 @@ body {
 }
 
 @keyframes pulseIcon {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
 }
 
 .publish-icon svg {
@@ -1399,9 +1482,17 @@ body {
 }
 
 @keyframes checkPop {
-    0% { transform: scale(0); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(0);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .step-spinner {
@@ -1457,8 +1548,13 @@ body {
 }
 
 @keyframes progressShine {
-    0% { background-position: 200% 0; }
-    100% { background-position: 0% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: 0% 0;
+    }
 }
 
 .progress-percent {
@@ -1540,6 +1636,71 @@ body {
 .admin-overlay.active {
     opacity: 1;
     visibility: visible;
+}
+
+/* ===== SETTINGS ===== */
+.settings-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.settings-form {
+    background: var(--bg-card);
+    padding: 30px;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.password-input {
+    position: relative;
+}
+
+.password-input input {
+    padding-right: 45px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.toggle-password:hover,
+.toggle-password.active {
+    color: var(--accent);
+    background: rgba(108, 92, 231, 0.1);
+}
+
+.toggle-password svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+.tooltip {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    color: var(--text-secondary);
+    cursor: help;
+    transition: color 0.3s ease;
+}
+
+.tooltip:hover {
+    color: var(--accent);
+}
+
+.tooltip svg {
+    fill: currentColor;
 }
 
 /* ===== RESPONSIVE ===== */

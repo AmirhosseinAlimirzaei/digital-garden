@@ -16,6 +16,13 @@ let uploadedFiles = {
     pdf: null
 };
 
+let ghConfig = {
+    owner: '',
+    repo: '',
+    branch: 'main',
+    token: ''
+};
+
 // ===== CHECK CURRENT PAGE =====
 const isLoginPage = document.querySelector('.login-page') !== null;
 const isAdminPage = document.querySelector('.admin-page') !== null;
@@ -32,8 +39,8 @@ function checkAuth() {
 }
 
 function login(username, password) {
-    return username === ADMIN_CREDENTIALS.username && 
-           password === ADMIN_CREDENTIALS.password;
+    return username === ADMIN_CREDENTIALS.username &&
+        password === ADMIN_CREDENTIALS.password;
 }
 
 function logout() {
@@ -63,13 +70,13 @@ if (isLoginPage) {
     // Login form submission
     loginForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const username = usernameInput.value.trim();
         const password = passwordInput.value;
 
         // Reset error state
         errorMessage.classList.remove('show');
-        
+
         // Show loading state
         loginBtn.classList.add('loading');
         loginBtn.disabled = true;
@@ -81,10 +88,10 @@ if (isLoginPage) {
             // Success
             loginBtn.classList.remove('loading');
             loginBtn.classList.add('success');
-            
+
             // Store session
             sessionStorage.setItem(SESSION_KEY, 'authenticated');
-            
+
             // Redirect after animation
             await delay(1000);
             window.location.href = 'admin.html';
@@ -93,11 +100,11 @@ if (isLoginPage) {
             loginBtn.classList.remove('loading');
             loginBtn.disabled = false;
             errorMessage.classList.add('show');
-            
+
             // Shake input fields
             usernameInput.parentElement.classList.add('shake');
             passwordInput.parentElement.classList.add('shake');
-            
+
             setTimeout(() => {
                 usernameInput.parentElement.classList.remove('shake');
                 passwordInput.parentElement.classList.remove('shake');
@@ -119,6 +126,14 @@ if (isAdminPage) {
     const publishModal = document.getElementById('publishModal');
     const uploadZones = document.querySelectorAll('.upload-zone');
 
+    // Settings Elements
+    const settingsForm = document.getElementById('settingsForm');
+    const tokenToggle = document.getElementById('tokenToggle');
+    const testConnectionBtn = document.getElementById('testConnectionBtn');
+
+    // Load GitHub Settings
+    loadGhSettings();
+
     // Mobile menu toggle
     menuToggle?.addEventListener('click', () => {
         sidebar.classList.toggle('active');
@@ -137,11 +152,11 @@ if (isAdminPage) {
         item.addEventListener('click', (e) => {
             e.preventDefault();
             const sectionId = item.dataset.section;
-            
+
             // Update nav state
             navItems.forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
-            
+
             // Show section
             sections.forEach(section => {
                 section.classList.remove('active');
@@ -210,7 +225,7 @@ if (isAdminPage) {
         zone.classList.add('has-file');
 
         const preview = zone.querySelector('.upload-preview');
-        
+
         if (type === 'cover' || type === 'infographic') {
             // Image preview
             const img = preview.querySelector('img');
@@ -249,6 +264,13 @@ if (isAdminPage) {
     bookForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
 
+        // Validate Settings first
+        if (!ghConfig.token || !ghConfig.owner || !ghConfig.repo) {
+            alert('Please configure GitHub settings first!');
+            document.querySelector('[data-section="settings"]').click();
+            return;
+        }
+
         const bookName = document.getElementById('bookName').value.trim();
         const bookDescription = document.getElementById('bookDescription').value.trim();
 
@@ -278,15 +300,151 @@ if (isAdminPage) {
 
         // Show publishing modal
         showPublishModal();
-        await simulatePublishing(bookName, bookDescription);
+        await publishToGitHub(bookName, bookDescription);
+    });
+
+    // ===== SETTINGS HANDLING =====
+    tokenToggle?.addEventListener('click', () => {
+        const input = document.getElementById('ghToken');
+        input.type = input.type === 'password' ? 'text' : 'password';
+        tokenToggle.classList.toggle('active');
+    });
+
+    settingsForm?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveGhSettings();
+        alert('Settings saved successfully!');
+    });
+
+    testConnectionBtn?.addEventListener('click', async () => {
+        saveGhSettings(); // Save current inputs to state first
+        testConnectionBtn.disabled = true;
+        testConnectionBtn.textContent = 'Testing...';
+
+        try {
+            await githubReq(`repos/${ghConfig.owner}/${ghConfig.repo}`);
+            alert('Connection Successful! Repository found.');
+        } catch (error) {
+            alert('Connection Failed: ' + error.message);
+        } finally {
+            testConnectionBtn.disabled = false;
+            testConnectionBtn.innerHTML = `
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                Test Connection
+            `;
+        }
+    });
+
+    function loadGhSettings() {
+        const saved = localStorage.getItem('gh_config');
+        if (saved) {
+            ghConfig = JSON.parse(saved);
+            if (document.getElementById('ghOwner')) {
+                document.getElementById('ghOwner').value = ghConfig.owner;
+                document.getElementById('ghRepo').value = ghConfig.repo;
+                document.getElementById('ghBranch').value = ghConfig.branch;
+                document.getElementById('ghToken').value = ghConfig.token;
+            }
+        }
+    }
+
+    function saveGhSettings() {
+        ghConfig = {
+            owner: document.getElementById('ghOwner').value.trim(),
+            repo: document.getElementById('ghRepo').value.trim(),
+            branch: document.getElementById('ghBranch').value.trim(),
+            token: document.getElementById('ghToken').value.trim()
+        };
+        localStorage.setItem('gh_config', JSON.stringify(ghConfig));
+    }
+}
+
+// ===== GITHUB API CLIENT =====
+async function githubReq(endpoint, method = 'GET', body = null) {
+    const url = `https://api.github.com/${endpoint}`;
+    const headers = {
+        'Authorization': `token ${ghConfig.token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+    };
+
+    const options = { method, headers };
+    if (body) options.body = JSON.stringify(body);
+
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'GitHub API Error');
+    }
+
+    return response.json();
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = error => reject(error);
     });
 }
 
-// ===== PUBLISHING SIMULATION =====
+async function uploadFileToGitHub(path, file, message) {
+    const content = await fileToBase64(file);
+
+    // Check if file exists to get sha (for update)
+    let sha = null;
+    try {
+        const existing = await githubReq(`repos/${ghConfig.owner}/${ghConfig.repo}/contents/${path}?ref=${ghConfig.branch}`);
+        sha = existing.sha;
+    } catch (e) {
+        // File doesn't exist, that's fine
+    }
+
+    const body = {
+        message: message,
+        content: content,
+        branch: ghConfig.branch
+    };
+    if (sha) body.sha = sha;
+
+    await githubReq(`repos/${ghConfig.owner}/${ghConfig.repo}/contents/${path}`, 'PUT', body);
+}
+
+async function updateManifest(newBookEntry) {
+    const path = `${CONTENTS_PATH}/manifest.json`;
+    let manifest = { books: [] };
+    let sha = null;
+
+    try {
+        const data = await githubReq(`repos/${ghConfig.owner}/${ghConfig.repo}/contents/${path}?ref=${ghConfig.branch}`);
+        manifest = JSON.parse(atob(data.content));
+        sha = data.sha;
+    } catch (e) {
+        console.log('Manifest not found, creating new one');
+    }
+
+    // Add new book
+    manifest.books.push(newBookEntry);
+
+    // Upload updated manifest
+    const content = btoa(JSON.stringify(manifest, null, 2));
+    const body = {
+        message: `Add book: ${newBookEntry.title}`,
+        content: content,
+        branch: ghConfig.branch
+    };
+    if (sha) body.sha = sha;
+
+    await githubReq(`repos/${ghConfig.owner}/${ghConfig.repo}/contents/${path}`, 'PUT', body);
+}
+
+// ===== PUBLISHING WORKFLOW =====
 async function showPublishModal() {
     const modal = document.getElementById('publishModal');
     const overlay = document.getElementById('adminOverlay');
-    
+
     modal.classList.remove('completed');
     modal.classList.add('active');
     overlay.classList.add('active');
@@ -299,55 +457,82 @@ async function showPublishModal() {
     document.getElementById('overallProgressFill').style.width = '0%';
     document.getElementById('progressPercent').textContent = '0%';
     document.getElementById('publishTitle').textContent = 'Publishing Your Book';
-    document.getElementById('publishSubtitle').textContent = 'Please wait while we process your files...';
+    document.getElementById('publishSubtitle').textContent = 'Uploading files to GitHub...';
 }
 
-async function simulatePublishing(bookName, description) {
+async function updateStep(stepIndex, status) {
     const steps = document.querySelectorAll('.step');
-    const progressFill = document.getElementById('overallProgressFill');
-    const progressPercent = document.getElementById('progressPercent');
-    const modal = document.getElementById('publishModal');
+    const step = steps[stepIndex];
 
-    const stepDurations = [800, 1200, 1500, 1000, 600];
-    let totalProgress = 0;
-
-    for (let i = 0; i < steps.length; i++) {
-        const step = steps[i];
+    if (status === 'active') {
         step.classList.add('active');
-
-        await delay(stepDurations[i]);
-
+    } else if (status === 'completed') {
         step.classList.remove('active');
         step.classList.add('completed');
 
-        totalProgress = ((i + 1) / steps.length) * 100;
-        progressFill.style.width = `${totalProgress}%`;
-        progressPercent.textContent = `${Math.round(totalProgress)}%`;
+        // Update progress
+        const total = steps.length;
+        const progress = ((stepIndex + 1) / total) * 100;
+        document.getElementById('overallProgressFill').style.width = `${progress}%`;
+        document.getElementById('progressPercent').textContent = `${Math.round(progress)}%`;
     }
-
-    // Complete
-    await delay(500);
-    modal.classList.add('completed');
-    document.getElementById('publishTitle').textContent = 'Book Published Successfully!';
-    document.getElementById('publishSubtitle').textContent = `"${bookName}" is now live on your website`;
-
-    // Generate manifest entry for console (for demonstration)
-    console.log('New book entry:', generateManifestEntry(bookName, description));
 }
 
-function generateManifestEntry(bookName, description) {
+async function publishToGitHub(bookName, description) {
     const folderName = bookName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
-    
-    return {
-        folder: folderName,
-        title: bookName,
-        description: description,
-        cover: uploadedFiles.cover?.name || 'cover.jpg',
-        infographic: uploadedFiles.infographic?.name || 'infographic.jpg',
-        audioPersian: uploadedFiles.podcastPersian?.name || 'persian.mp3',
-        audioEnglish: uploadedFiles.podcastEnglish?.name || null,
-        pdf: uploadedFiles.pdf?.name || 'book.pdf'
-    };
+    const bookPath = `${CONTENTS_PATH}/${folderName}`;
+
+    try {
+        // Step 1: Images
+        updateStep(0, 'active'); // Creating Folder (conceptually)
+        updateStep(0, 'completed');
+
+        updateStep(1, 'active'); // Uploading Images
+        await uploadFileToGitHub(`${bookPath}/images/${uploadedFiles.cover.name}`, uploadedFiles.cover, `Add cover for ${bookName}`);
+        await uploadFileToGitHub(`${bookPath}/images/${uploadedFiles.infographic.name}`, uploadedFiles.infographic, `Add infographic for ${bookName}`);
+        updateStep(1, 'completed');
+
+        // Step 2: Audio
+        updateStep(2, 'active');
+        await uploadFileToGitHub(`${bookPath}/data/${uploadedFiles.podcastPersian.name}`, uploadedFiles.podcastPersian, `Add Persian audio for ${bookName}`);
+        if (uploadedFiles.podcastEnglish) {
+            await uploadFileToGitHub(`${bookPath}/data/${uploadedFiles.podcastEnglish.name}`, uploadedFiles.podcastEnglish, `Add English audio for ${bookName}`);
+        }
+        updateStep(2, 'completed');
+
+        // Step 3: PDF
+        updateStep(3, 'active');
+        await uploadFileToGitHub(`${bookPath}/data/${uploadedFiles.pdf.name}`, uploadedFiles.pdf, `Add PDF for ${bookName}`);
+        updateStep(3, 'completed');
+
+        // Step 4: Manifest
+        updateStep(4, 'active');
+        const entry = {
+            folder: folderName,
+            title: bookName,
+            description: description,
+            cover: uploadedFiles.cover.name,
+            infographic: uploadedFiles.infographic.name,
+            audioPersian: uploadedFiles.podcastPersian.name,
+            audioEnglish: uploadedFiles.podcastEnglish ? uploadedFiles.podcastEnglish.name : null,
+            pdf: uploadedFiles.pdf.name
+        };
+        await updateManifest(entry);
+        updateStep(4, 'completed');
+
+        // Success
+        await delay(500);
+        const modal = document.getElementById('publishModal');
+        modal.classList.add('completed');
+        document.getElementById('publishTitle').textContent = 'Book Published Successfully!';
+        document.getElementById('publishSubtitle').textContent = `"${bookName}" is now live on GitHub!`;
+
+    } catch (error) {
+        console.error(error);
+        alert(`Publishing Failed: ${error.message}`);
+        document.getElementById('publishModal').classList.remove('active');
+        document.getElementById('adminOverlay').classList.remove('active');
+    }
 }
 
 // Publish modal actions
@@ -358,7 +543,7 @@ document.getElementById('viewBookBtn')?.addEventListener('click', () => {
 document.getElementById('addAnotherBtn')?.addEventListener('click', () => {
     const modal = document.getElementById('publishModal');
     const overlay = document.getElementById('adminOverlay');
-    
+
     modal.classList.remove('active', 'completed');
     overlay.classList.remove('active');
 
