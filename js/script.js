@@ -1,12 +1,15 @@
 // ===== CONFIGURATION =====
 const CONTENTS_PATH = 'Contents';
 const MANIFEST_PATH = `${CONTENTS_PATH}/manifest.json`;
+const AMBIENCE_PATH = `${CONTENTS_PATH}/ambience`;
 
 // ===== STATE =====
 let booksData = [];
 let currentBookData = null;
 let currentLanguage = 'persian';
 let isPlaying = false;
+let currentAmbient = 'off';
+let ambientVolume = 0.5; // Default 50%
 
 // ===== DOM ELEMENTS =====
 const themeToggle = document.getElementById('themeToggle');
@@ -15,6 +18,7 @@ const loadingState = document.getElementById('loadingState');
 const modalOverlay = document.getElementById('modalOverlay');
 const modalClose = document.getElementById('modalClose');
 const audioPlayer = document.getElementById('audioPlayer');
+const ambientPlayer = document.getElementById('ambientPlayer');
 const playPauseBtn = document.getElementById('playPauseBtn');
 const progressContainer = document.getElementById('progressContainer');
 const progressFill = document.getElementById('progressFill');
@@ -33,6 +37,11 @@ const fullscreenClose = document.getElementById('fullscreenClose');
 const fullscreenImage = document.getElementById('fullscreenImage');
 const infographicContainer = document.getElementById('infographicContainer');
 const speedBtns = document.querySelectorAll('.speed-btn');
+const ambientToggle = document.getElementById('ambientToggle');
+const ambientMenu = document.getElementById('ambientMenu');
+const ambientOptions = document.querySelectorAll('.ambient-option');
+const ambientVolumeSlider = document.getElementById('ambientVolumeSlider');
+const volumeValueLabel = document.getElementById('volumeValue');
 
 // ===== THEME TOGGLE =====
 function initTheme() {
@@ -56,6 +65,213 @@ function buildPath(folder, subfolder, filename) {
     return `${CONTENTS_PATH}/${encodePathComponent(folder)}/${subfolder}/${encodePathComponent(filename)}`;
 }
 
+// ===== IMAGE LOADING WITH SKELETON =====
+function setupImageLoading(imgElement, containerElement, onLoadCallback) {
+    imgElement.onload = () => {
+        if (containerElement) {
+            containerElement.classList.add('image-loaded');
+        }
+        imgElement.classList.add('loaded');
+        if (onLoadCallback) onLoadCallback();
+    };
+    imgElement.onerror = () => {
+        if (containerElement) {
+            containerElement.style.display = 'none';
+        }
+    };
+}
+
+// ===== AMBIENT MUSIC WITH FADE =====
+const AMBIENT_FADE_DURATION = 1000; // milliseconds
+let ambientFadeInterval = null;
+
+function initAmbient() {
+    // Load saved volume (default 50%)
+    const savedVolume = localStorage.getItem('ambientVolume');
+    if (savedVolume !== null) {
+        ambientVolume = parseFloat(savedVolume);
+    } else {
+        ambientVolume = 0.5; // Default 50%
+    }
+
+    // Update slider position
+    if (ambientVolumeSlider) {
+        ambientVolumeSlider.value = ambientVolume * 100;
+        updateVolumeLabel(ambientVolume * 100);
+    }
+
+    const savedAmbient = localStorage.getItem('ambient') || 'off';
+    setAmbient(savedAmbient, false);
+    updateAmbientIcon();
+}
+
+function updateVolumeLabel(value) {
+    if (volumeValueLabel) {
+        volumeValueLabel.textContent = `${Math.round(value)}%`;
+    }
+}
+
+function fadeOutAudio(audio, duration, callback) {
+    if (ambientFadeInterval) clearInterval(ambientFadeInterval);
+
+    const startVolume = audio.volume;
+    if (startVolume === 0) {
+        audio.pause();
+        if (callback) callback();
+        return;
+    }
+
+    const steps = 20;
+    const stepDuration = duration / steps;
+    const volumeStep = startVolume / steps;
+    let currentStep = 0;
+
+    ambientFadeInterval = setInterval(() => {
+        currentStep++;
+        audio.volume = Math.max(0, startVolume - (volumeStep * currentStep));
+
+        if (currentStep >= steps) {
+            clearInterval(ambientFadeInterval);
+            audio.pause();
+            audio.volume = 0;
+            if (callback) callback();
+        }
+    }, stepDuration);
+}
+
+function fadeInAudio(audio, duration, targetVolume) {
+    if (ambientFadeInterval) clearInterval(ambientFadeInterval);
+
+    audio.volume = 0;
+    audio.play().catch(err => console.warn('Ambient playback failed:', err));
+
+    const steps = 20;
+    const stepDuration = duration / steps;
+    const volumeStep = targetVolume / steps;
+    let currentStep = 0;
+
+    ambientFadeInterval = setInterval(() => {
+        currentStep++;
+        audio.volume = Math.min(targetVolume, volumeStep * currentStep);
+
+        if (currentStep >= steps) {
+            clearInterval(ambientFadeInterval);
+            audio.volume = targetVolume;
+        }
+    }, stepDuration);
+}
+
+function setAmbient(type, save = true) {
+    const previousAmbient = currentAmbient;
+    currentAmbient = type;
+
+    // Update frost overlay
+    updateFrostOverlay(type);
+
+    // Update button state
+    if (type === 'off') {
+        ambientToggle.classList.remove('active');
+        if (previousAmbient !== 'off') {
+            fadeOutAudio(ambientPlayer, AMBIENT_FADE_DURATION);
+        }
+    } else {
+        ambientToggle.classList.add('active');
+
+        if (previousAmbient !== 'off' && previousAmbient !== type) {
+            // Crossfade: fade out current, then fade in new
+            fadeOutAudio(ambientPlayer, AMBIENT_FADE_DURATION, () => {
+                ambientPlayer.src = `${AMBIENCE_PATH}/${type}.mp3`;
+                fadeInAudio(ambientPlayer, AMBIENT_FADE_DURATION, ambientVolume);
+            });
+        } else {
+            // Just fade in
+            ambientPlayer.src = `${AMBIENCE_PATH}/${type}.mp3`;
+            fadeInAudio(ambientPlayer, AMBIENT_FADE_DURATION, ambientVolume);
+        }
+    }
+
+    // Update menu active state
+    ambientOptions.forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.ambient === type);
+    });
+
+    // Update icon
+    updateAmbientIcon();
+
+    if (save) {
+        localStorage.setItem('ambient', type);
+    }
+}
+
+function updateFrostOverlay(type) {
+    const frostOverlay = document.getElementById('frostOverlay');
+    if (frostOverlay) {
+        if (type === 'snow') {
+            frostOverlay.classList.add('active');
+        } else {
+            frostOverlay.classList.remove('active');
+        }
+    }
+}
+
+function updateAmbientIcon() {
+    const icons = document.querySelectorAll('.ambient-icon');
+    icons.forEach(icon => icon.classList.remove('visible'));
+
+    if (currentAmbient === 'off') {
+        document.querySelector('.ambient-off')?.classList.add('visible');
+    } else if (currentAmbient === 'snow') {
+        document.querySelector('.ambient-snow')?.classList.add('visible');
+    } else if (currentAmbient === 'rain') {
+        document.querySelector('.ambient-rain')?.classList.add('visible');
+    }
+}
+
+function toggleAmbientMenu() {
+    ambientMenu.classList.toggle('active');
+}
+
+// Volume slider handler
+if (ambientVolumeSlider) {
+    ambientVolumeSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value);
+        ambientVolume = value / 100;
+        updateVolumeLabel(value);
+
+        // Update current playing audio volume immediately
+        if (currentAmbient !== 'off') {
+            ambientPlayer.volume = ambientVolume;
+        }
+
+        // Save to localStorage
+        localStorage.setItem('ambientVolume', ambientVolume.toString());
+    });
+
+    // Prevent menu from closing when interacting with slider
+    ambientVolumeSlider.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+}
+
+// Close menu when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.ambient-toggle')) {
+        ambientMenu.classList.remove('active');
+    }
+});
+
+ambientToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleAmbientMenu();
+});
+
+ambientOptions.forEach(option => {
+    option.addEventListener('click', () => {
+        setAmbient(option.dataset.ambient);
+        // Don't close menu so user can adjust volume
+    });
+});
+
 // ===== LOAD BOOKS FROM MANIFEST =====
 async function loadBooksData() {
     try {
@@ -63,12 +279,12 @@ async function loadBooksData() {
         if (!response.ok) {
             throw new Error('Manifest file not found');
         }
-        
+
         const manifest = await response.json();
-        
+
         return manifest.books.map((book, index) => {
             const folder = book.folder;
-            
+
             return {
                 id: index + 1,
                 folder: folder,
@@ -120,7 +336,15 @@ function renderBooks() {
         </div>
     `).join('');
 
+    // Setup image loading for book cards
     document.querySelectorAll('.book-card').forEach(card => {
+        const inner = card.querySelector('.book-card-inner');
+        const img = inner.querySelector('img');
+
+        img.onload = () => {
+            inner.classList.add('image-loaded');
+        };
+
         card.addEventListener('click', () => {
             openModal(parseInt(card.dataset.bookId));
         });
@@ -138,21 +362,37 @@ function openModal(bookId) {
     } else if (currentBookData.hasEnglishAudio) {
         currentLanguage = 'english';
     }
-    
+
     updateLanguageUI();
 
-    document.getElementById('modalCover').src = currentBookData.cover;
+    // Setup modal cover with loading effect
+    const modalCover = document.getElementById('modalCover');
+    const modalCoverContainer = modalCover.parentElement;
+    modalCoverContainer.classList.remove('image-loaded');
+    modalCover.src = currentBookData.cover;
+    modalCover.onload = () => {
+        modalCoverContainer.classList.add('image-loaded');
+    };
+
     document.getElementById('modalTitle').textContent = currentBookData.title;
     document.getElementById('modalDescription').textContent = currentBookData.description;
-    
-    // Handle infographic
+
+    // Handle infographic with loading effect
     const infographicImg = document.getElementById('modalInfographic');
     const infographicContainerEl = document.getElementById('infographicContainer');
-    
+
     if (currentBookData.infographic) {
+        infographicContainerEl.classList.remove('image-loaded');
         infographicImg.src = currentBookData.infographic;
-        infographicImg.onerror = () => { infographicContainerEl.style.display = 'none'; };
-        infographicImg.onload = () => { infographicContainerEl.style.display = 'block'; };
+        infographicImg.classList.remove('loaded');
+
+        infographicImg.onload = () => {
+            infographicContainerEl.classList.add('image-loaded');
+            infographicImg.classList.add('loaded');
+        };
+        infographicImg.onerror = () => {
+            infographicContainerEl.style.display = 'none';
+        };
         infographicContainerEl.style.display = 'block';
     } else {
         infographicContainerEl.style.display = 'none';
@@ -213,7 +453,7 @@ function resetAudioPlayer() {
     progressFill.style.width = '0%';
     currentTimeEl.textContent = '0:00';
     totalTimeEl.textContent = '0:00';
-    
+
     // Reset playback speed to 1x
     audioPlayer.playbackRate = 1;
     speedBtns.forEach(btn => {
@@ -247,7 +487,7 @@ function switchLanguage(lang) {
     if (lang === currentLanguage) return;
     if (lang === 'english' && !currentBookData.hasEnglishAudio) return;
     if (lang === 'persian' && !currentBookData.hasPersianAudio) return;
-    
+
     currentLanguage = lang;
     updateLanguageUI();
     audioPlayer.pause();
@@ -323,7 +563,7 @@ speedBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         const speed = parseFloat(btn.dataset.speed);
         audioPlayer.playbackRate = speed;
-        
+
         // Update active state
         speedBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -334,7 +574,11 @@ speedBtns.forEach(btn => {
 infographicContainer.addEventListener('click', () => {
     const imgSrc = document.getElementById('modalInfographic').src;
     if (imgSrc && !imgSrc.includes('placeholder')) {
+        fullscreenImage.classList.remove('loaded');
         fullscreenImage.src = imgSrc;
+        fullscreenImage.onload = () => {
+            fullscreenImage.classList.add('loaded');
+        };
         fullscreenOverlay.classList.add('active');
     }
 });
@@ -359,7 +603,7 @@ document.addEventListener('keydown', (e) => {
             closeModal();
         }
     }
-    
+
     // Space to play/pause when modal is open
     if (e.key === ' ' && modalOverlay.classList.contains('active') && !fullscreenOverlay.classList.contains('active')) {
         e.preventDefault();
@@ -370,10 +614,11 @@ document.addEventListener('keydown', (e) => {
 // ===== INITIALIZE =====
 async function init() {
     initTheme();
+    initAmbient();
     booksData = await loadBooksData();
-    
+
     if (loadingState) loadingState.remove();
-    
+
     renderBooks();
 }
 
